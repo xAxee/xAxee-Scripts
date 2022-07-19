@@ -1,0 +1,100 @@
+#AxAutoUpdate - Skrypt zarządzający aktualizacjami
+#$ Wersja: v1.0.6 $#
+
+function AxUpdate_getVersion(content: texts) :: text:
+    loop {_content::*}:
+        set {_start} to (index of "##$" in loop-value) + 2
+        set {_end} to (index of "$##" in loop-value) - 1
+        return (subtext of loop-value between character {_start} to {_end})
+function AxUpdate_deregister(name: string):
+    clear {AxUpdate::%{_name}%::*} and {AxUpdate::%{_name}%}
+function AxUpdate_isEnable(name: string) :: boolean:
+    if skutil file "plugins/Skript/scripts/%{AxUpdate::%{_name}%}%.sk" exists:
+        return true
+    if skutil file "plugins/Skript/scripts/-%{AxUpdate::%{_name}%}%.sk" exists:
+        return false
+    AxUpdate_deregister({_name})
+function AxUpdate_getPath(name: string) :: string:
+    if AxUpdate_isEnable({_name}) is true:
+        return "plugins/Skript/scripts/%{AxUpdate::%{_name}%}%.sk"
+    return "plugins/Skript/scripts/-%{AxUpdate::%{_name}%}%.sk"
+function AxUpdate_update(name: text) :: text:
+    set {_file} to AxUpdate_getPath({_name})
+    skutil delete file {_file}
+    skutil download file from {AxUpdate::%{_name}%::link} to file {_file}
+    if AxUpdate_isEnable({_name}) is true:
+        reload script {AxUpdate::%{_name}%}
+function AxUpdate_isNewsetVersion(name: string) :: boolean:
+    set {_ver1} to AxUpdate_getVersion(skutil AxUpdate_getPath({_name})'s file contents)
+    set {_ver2} to AxUpdate_getVersion(skutil url {AxUpdate::%{_name}%::link}'s contents)
+    if {_ver1} is {_ver2}:
+        return true
+    return false
+function AxUpdate_checkVersion(name: string):
+    set {_text} to "&6(%{_name}%)"
+    if AxUpdate_isNewsetVersion({_name}) is true:
+        send "&a[AxUpdate] %{_text}% &aThe script version is up to date" to console
+        stop
+    send "&a[AxUpdate] %{_text}% &cThe script version is out of date" to console
+    send "&a[AxUpdate] %{_text}% &cThe script version is out of date" to all ops
+    if {AxUpdate::%{_name}%::status} is true:
+        send "&a[AxUpdate] %{_text}% &cDownloading..." to console
+        AxUpdate_update({_name})
+function AxUpdate_register(name: string, link: string, path: string):
+    set {AxUpdate::%{_name}%::link} to {_link}
+    set {AxUpdate::%{_name}%::status} to true
+    set {AxUpdate::%{_name}%::name} to {_name}
+    set {AxUpdate::%{_name}%} to {_path}
+function AxUpdate_getBoolText(bool: boolean, type: boolean) :: text:
+    if {_type} is true:
+        if {_bool} is true:
+            return "&aOn"
+        return "&cOff"
+    if {_bool} is true:
+        return "&aYes"
+    return "&cNo"
+command /update [<text>] [<text>]:
+    aliases: xAxee:update, autoupdate
+    permission: AutoUpdate
+    trigger:
+        if arg 1 is "list":
+            send "&7Registered scripts list"
+            loop {AxUpdate::*}:
+                send " &7- &6%{AxUpdate::%loop-index%::name}%&7: is enable: %AxUpdate_getBoolText(AxUpdate_isEnable(loop-index), false)%&7, auto update: %AxUpdate_getBoolText({AxUpdate::%loop-index%::status}, true)%&7, Newset version: %AxUpdate_getBoolText(AxUpdate_isNewsetVersion(loop-index), false)%"
+            stop
+        if arg 2 is set:
+            if arg 1 is "on":
+                set {AxUpdate::%arg 2%::status} to true
+                send "&aAutomatic updates have been enabled"
+            if arg 1 is "off":
+                set {AxUpdate::%arg 2%::status} to false
+                send "&cAutomatic updates have been disabled"
+            if arg 1 is "version":
+                send "&7Script &a%arg 2% &7version: &a%AxUpdate_getVersion(skutil AxUpdate_getPath(arg 2)'s file contents)%"
+            if arg 1 is "update":
+                send "&7Updating all scripts..."
+                if arg 2 is "*":
+                    loop {AxUpdate::*}:
+                        if AxUpdate_isNewsetVersion({AxUpdate::%loop-index%::name}) is false:
+                            AxUpdate_checkVersion({AxUpdate::%loop-index%::name})
+                    stop
+                send "&7Updating..."
+                AxUpdate_update(arg 2)
+                send "&7Script is up to date!"
+            if arg 1 is "unregister":
+                AxUpdate_deregister(arg 2)
+                send "&7Unregisterred script!"
+            stop
+        send "&7--------- { &ecommand list &7} ---------"
+        send "&7/update list - &7Registered scripts list"
+        send "&7/update version <name> - &7Script version"
+        send "&7/update unregister <name> - &7Unregister script"
+        send "&7/update update <name/*> - &7Manual script update"
+        send "&7/update on <name> - &7Enable auto update"
+        send "&7/update off <name> - &7Disable auto update"
+on load:
+    AxUpdate_register("AxUpdate", "https://code.skript.pl/0uFoPX6y/raw", script)
+every 60 minutes:
+    loop {AxUpdate::*}:
+        if AxUpdate_isNewsetVersion({AxUpdate::%loop-index%::name}) is false:
+            AxUpdate_checkVersion({AxUpdate::%loop-index%::name})

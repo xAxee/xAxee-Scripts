@@ -4,7 +4,7 @@ Skrypt korzysta z api strony namemc.com dzięki czemu możemy dawać graczom nag
 ## Informacje
 ### Komendy
 - /namemc
- - /namemc odbierz - Odbiera nagrode
+  - odbierz - Odbiera nagrode
 ### Konfiguracja
 - server - nazwa serwera
 - award-items - Nagrody za polubienie
