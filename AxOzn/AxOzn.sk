@@ -1,0 +1,53 @@
+#AxOzn - Skrypt na oznaczanie graczy na chacie
+#$ Wersja: 2.6 $#
+
+options:
+    #Jaki znak musi byc przed nickiem aby oznaczyc gracza
+    Char-before: @
+    #Jaka wiadomosc ma sie wyswietlac na chacie po oznaczeniu wpisz 'none' jeżeli ma nie byc żadnej wiadomości
+    Message-Chat: "none"
+    #Jaka wiadomosc ma sie wyswietlac graczwi po oznaczaniu wpisz 'none' jeżeli ma nie byc żadnej wiadomości
+    Message-Actionbar: "&7Gracz &6{PLAYER} &7Oznaczyl cie na chacie!"
+    #Jaki dzwiek ma sie odtworzyc po oznaczaniu, wpisz none jeżeli ma nie byc żadnej wiadomości
+    Sounds: "entity.experience_orb.pickup"
+    #Na jaki kolor ma kolorowac nazwe gracza na chacie wpisz none jeżeli ma nie byc żadnej wiadomości
+    Name-Color: &e
+    #Jaki wyraz ma oznaczac kazdego na chacie // permisja AxOzn.everyone
+    Everyone-word: everyone
+    #Na jaki kolor ma kolorowac everyone na chacie wpisz none jeżeli ma nie byc żadnej wiadomości
+    Everyone-Color: &6
+    
+on load:
+
+    #AxAutoUpdate section (https://skript.pl/temat/40795-axautoupdate)
+    set {AxUpdate::AxOzn::link} to "https://code.skript.pl/eugbt4K7/raw"
+    set {AxUpdate::AxOzn::status} to true
+    set {AxUpdate::AxOzn::name} to "AxOzn"
+    set {AxUpdate::AxOzn} to script
+        
+on chat:
+    if player has permission "xAxee.ozn":
+        loop all players:
+            set {_s} to false
+            if message contain "{@Char-before}%loop-player%":
+                set {_s} to true
+                if "{@Name-Color}" is not "none":
+                    set {_color} to last colors of (subtext of message between 0 and (first index of "{@Char-before}{@Everyone-word}" in message))
+                    replace all "{@Char-before}%name of loop-player%" with "{@Name-Color}{@Char-before}%name of loop-player%%{_color}%" in message
+            if message contain "{@Char-before}{@Everyone-word}":
+                if player has permission "xAxee.ozn.everyone":
+                    set {_s} to true
+                    if "{@Everyone-Color}" is not "none":
+                        set {_color} to last colors of (subtext of message between 0 and (first index of "{@Char-before}{@Everyone-word}" in message))
+                        replace all "{@Char-before}{@Everyone-word}" with "{@Everyone-Color}{@Char-before}{@Everyone-word}%{_color}%" in message
+            if {_s} is true:
+                if {@Message-Chat} is not "none":
+                    set {_chat} to {@Message-Chat}
+                    replace all "{PLAYER}" with name of player in {_chat}
+                    send colored {_chat} to loop-player
+                if {@Message-Actionbar} is not "none":
+                    set {_chat} to {@Message-Actionbar}
+                    replace all "{PLAYER}" with name of player in {_chat}
+                    send action bar colored {_chat} to loop-player
+                if {@Sounds} is not "none":
+                    play sound {@Sounds} with volume 1 to loop-player

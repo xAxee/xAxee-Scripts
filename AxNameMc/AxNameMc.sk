@@ -1,0 +1,47 @@
+#AxNameMc - Skrypt na nagrody za polubienie namemc
+#$ Version: 2.5 $#
+
+options:
+    #Nazwa serwera
+    server: azumc.pl
+    #Nagroda za odebranie nagrody
+    award-items: 8 of chest named "&6Premiumcase" with lore "&7Zakupisz na azumc.pl" and 64 of gold ingot
+    #Jaka komenda ma sie wykonywac po odebraniu nagrody wpisz "none" ma sie nic nie wyswietlic
+    award-command: "lp user %player% parent addtemp vip 3d"
+    #Jaka wiadomosc ma sie wyswietlic kazdemu po odebraniu nagrody, wpisz "none" ma sie nic nie wyswietlic
+    broadcast: "none"
+    #Jaka wiadomosc ma sie wyswietlic po odebraniu (graczu), wpisz "none" ma sie nic nie wyswietlic
+    message: "" and "&7Pomyslnie odebrales nagrode! Wroc za 3dni aby odebrac kolejny raz!", ""
+    #Wiadomosci pomocne
+    help-message: "" and "&7Serwer mozesz polubic na &ahttps://pl.namemc.com/server/azumc.pl?q=azumc.pl", "&7Jezeli juz to zrobiles wpisz &6/namemc odbierz", ""
+    #Wiadomosc ktora sie wyswietla jezeli gracz nie odczekal czasu cooldownu
+    recived-message: "&7Odebrales juz nagrode!"
+    #Wiadomosc ktora sie wyswietla gdy gracz nie polubil serwera
+    failed-message: "", "&cAby odebrac nagrode musisz polubic serwer na &ahttps://pl.namemc.com/server/azumc.pl?q=azumc.pl", ""
+
+on load:
+    #AxAutoUpdate section (https://skript.pl/temat/40795-axautoupdate)
+    set {AxUpdate::AxNamemc::link} to "https://code.skript.pl/ucLgUCXh/raw"
+    set {AxUpdate::AxNamemc::status} to true
+    set {AxUpdate::AxNamemc::name} to "AxNamemc"
+    set {AxUpdate::AxNamemc} to script
+
+command /namemc [<text="help">]:
+    trigger:
+        if arg is not "odbierz":
+            send {@help-message}
+            stop
+        if {AxNameMc::%player%} is set:
+            send {@recived-message}
+            stop
+        if url "https://api.namemc.com/server/{@server}/likes?profile=%player's uuid%"'s contents is "false":
+            send {@failed-message}
+            stop
+        set {AxNameMc::%player%} to now
+        add {@award-items} to player
+        if {@message} is not "none":
+            send {@message}
+        if {@broadcast} is not "none":
+            send {@broadcast} to all players
+        if {@award-command} is not "none":
+            execute console command {@award-command}

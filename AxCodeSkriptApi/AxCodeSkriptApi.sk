@@ -1,0 +1,102 @@
+#Opublikowane za pomoca AxCodeSkriptApi by xAxee, dzieki https://code.skript.pl/api
+
+#Sekcja AxAutoUpdate
+
+#$ Wersja: v1.0.6 $#
+on load:
+    set {AxUpdate::AxCodeSkriptApi::link} to "https://code.skript.pl/6N19wlu2"
+    set {AxUpdate::AxCodeSkriptApi::status} to true
+    set {AxUpdate::AxCodeSkriptApi::name} to "AxCodeSkriptApi"
+    set {AxUpdate::AxCodeSkriptApi} to script
+
+# Opcje
+
+options:
+    key: # Twoj klucz api, znajdziesz go w tutaj https://code.skript.pl/api-key
+    text: "##Opublikowane za pomoca AxCodeSkriptApi by xAxee, dzieki https://code.skript.pl/api"
+
+# Funkcja do gui
+
+function AxCodeSkriptApi_openGui(index: integer, player: player):
+    if {_index} is 1:
+        set {_rows} to round up ((size of all scripts)/9)
+        set {_gui} to chest inventory with {_rows} rows named "&eCodeSkript &7- &eWybierz plik"
+        set {_slot} to 0
+        loop all scripts:
+            set slot {_slot} of {_gui} to book named "&e%{_slot}+1%. &7%(name of file loop-value)%" with lore "&7Nazwa: &e%loop-value%"
+            add 1 to {_slot}
+    if {_index} is 2:
+        set {_rows} to round up ((size of {AxCodeSkriptApi::langs::*})/9)
+        set {_gui} to chest inventory with {_rows} rows named "&eCodeSkript &7- &eWybierz styl kodu"
+        set {_slot} to 0
+        loop {AxCodeSkriptApi::langs::*}:
+            set slot {_slot} of {_gui} to paper named "&e%{AxCodeSkriptApi::langs::%loop-index%::name}%" with lore "&7Id: &a%{AxCodeSkriptApi::langs::%loop-index%::id}%"
+            add 1 to {_slot}
+    if {_index} is 3:
+        set {_gui} to chest inventory with 1 rows named "&eCodeSkript &7- &eSposob"
+        set slot 3 of {_gui} to red wool named "&cAnonimowo"
+        set slot 5 of {_gui} to lime wool named "&aNa twoje konto"
+    open {_gui} to {_player}
+    
+# Funkcje do wysylania posta i odbieranai danych z api
+
+function AxCodeSkriptApi_sendToApi(request: string, p: player) :: string:
+    set {AxCodeSkriptApi::temp::request} to {_request}
+    send "post" request to "https://code.skript.pl/api/v1/codes/create" with body {AxCodeSkriptApi::temp::request} and the headers "Authorization: Token", and "Content-Type: application/json"
+    set {_url} to content of json value "url" from text (last http response's body)
+    send "&aLink: &7%{_url}%" to {AxCodeSkriptApi::temp::player}
+    clear {AxCodeSkriptApi::temp::request} and {AxCodeSkriptApi::temp::player}
+    
+function AxCodeSkriptApi_publishScript(p: player):
+    send "&aPublikowanie kodu..." to {_p}
+    set {AxCodeSkriptApi::temp::player} to {_p}
+    set {_request} to json representation of {AxCodeSkriptApi::data::%{_p}%::*}
+    AxCodeSkriptApi_sendToApi({_request}, {AxCodeSkriptApi::temp::player})
+    
+# Główna komenda
+    
+command /publikuj [<text>]:
+    permission: AxCodeSkriptApi
+    executable by: player
+    trigger:
+        clear {AxCodeSkriptApi::data::%player%::*}
+        set {AxCodeSkriptApi::data::%player%::key} to "{@key}"
+        AxCodeSkriptApi_openGui(1, player)
+
+# Pobieranie języków z api
+
+on load:
+    copy json (join (url "https://code.skript.pl/api/v1/languages"'s contents) with "") to {AxCodeSkriptApi::langs::*}
+    send "&8[&eAxCodeSkriptApi&8] &7Pobrano liste jezykow &8(&e%size of {AxCodeSkriptApi::langs::*}%&8)"
+
+# Integracje w gui
+
+on inventory click:
+    if event-inventory is player's inventory:
+        stop
+    cancel event
+    if name of event-inventory is "&eCodeSkript &7- &eWybierz plik":
+        set {_file} to uncolored line 1 of lore of clicked slot
+        replace all "Nazwa: " with "" in {_file}
+        loop all scripts:
+            name of file loop-value is {_file}
+            set {_file} to loop-value
+        set {AxCodeSkriptApi::data::%player%::content} to join ({@text} and "plugins/Skript/scripts/%{_file}%"'s file contents) with nl
+        AxCodeSkriptApi_openGui(2, player)
+        stop
+    if name of event-inventory is "&eCodeSkript &7- &eWybierz styl kodu":
+        set {_lang} to uncolored line 1 of lore of clicked slot
+        replace all "Id: " with "" in {_lang}
+        set {AxCodeSkriptApi::data::%player%::language} to {_lang}
+        AxCodeSkriptApi_openGui(3, player)
+        stop
+    if name of event-inventory is "&eCodeSkript &7- &eSposob":
+        if clicked slot is 3:
+            set {AxCodeSkriptApi::data::%player%::anonymous} to true
+        if clicked slot is 5:
+            set {AxCodeSkriptApi::data::%player%::anonymous} to false
+        clicked slot is 3 or 5
+        close player's inventory
+        AxCodeSkriptApi_publishScript(player)
+        stop
+    uncancel event
